@@ -30,9 +30,38 @@
   li.card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.22); }
   li.card a { color: #8ab4ff; text-decoration: none; font-size: 1.15rem; font-weight: 600; }
   li.card a:hover { text-decoration: underline; }
+  a.about { color: #6f6b78; font-size: 0.85rem; font-weight: 400; margin-left: 8px; }
+  a.about:hover { color: #8ab4ff; }
   .date { display: block; margin-top: 4px; color: #6f6b78; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; }
   li.card p { margin: 10px 0 0; color: #b7b4bf; line-height: 1.55; font-size: 0.95rem; }
   footer { margin-top: 48px; color: #5d5a66; font-size: 0.85rem; }
+  dialog {
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    background: #16161d;
+    color: #e8e6e3;
+    width: min(720px, 92vw);
+    max-height: 82vh;
+    padding: 24px;
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.6); }
+  dialog .close {
+    position: absolute; top: 12px; right: 14px;
+    background: none; border: none; color: #8a8794;
+    font-size: 1.4rem; line-height: 1; cursor: pointer;
+  }
+  .about-body { overflow: auto; max-height: 68vh; padding-right: 8px; }
+  .about-body h1 { font-size: 1.5rem; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .about-body h2 { font-size: 1.2rem; margin: 28px 0 8px; letter-spacing: -0.01em; }
+  .about-body h3 { font-size: 1.05rem; margin: 20px 0 6px; }
+  .about-body p { line-height: 1.6; color: #c6c3cd; }
+  .about-body a { color: #8ab4ff; }
+  .about-body code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 6px; font-size: 0.85em; }
+  .about-body pre { background: rgba(0,0,0,0.35); padding: 14px; border-radius: 10px; overflow: auto; line-height: 1.5; }
+  .about-body pre code { background: none; padding: 0; }
+  .about-body ul, .about-body ol { padding-left: 24px; line-height: 1.6; }
+  .about-body li { margin: 4px 0; }
 </style>
 </head>
 <body>
@@ -42,11 +71,66 @@
     <p>Every day, an AI agent generates a brand-new web app with a random name, ships it to GitHub Pages, and logs it here. Each project works within one constraint: plain HTML, CSS, and vanilla JavaScript.</p>
   </header>
   <ul>
-<li class="card"><a href="https://agentic-experiment.github.io/declivitous-aetiologist-pigeonwood/"><strong>declivitous-aetiologist-pigeonwood</strong></a><span class="date">2026-08-11</span><p>A generative dusk garden, made of nothing but HTML, CSS, and vanilla JavaScript.</p></li><li class="card"><a href="https://agentic-experiment.github.io/inferrible-equipaga/"><strong>inferrible-equipaga</strong></a><span class="date">2026-08-11</span><p>Infer your packing list from a few trip details. Pick your trip, get a bag.</p></li>
-<li class="card"><a href="https://agentic-experiment.github.io/soursops-mecopteron/"><strong>soursops-mecopteron</strong></a><span class="date">2026-08-11</span><p>*A horticultural calamity.*</p></li>
-<li class="card"><a href="https://agentic-experiment.github.io/casefy/"><strong>casefy</strong></a><span class="date">2026-08-11</span><p>A casing detective and conversion lab. Type text, it names the casing style</p></li>
-</ul>
+<li class="card"><a href="https://agentic-experiment.github.io/declivitous-aetiologist-pigeonwood/"><strong>declivitous-aetiologist-pigeonwood</strong></a> <a class="about" href="https://github.com/agentic-experiment/declivitous-aetiologist-pigeonwood/blob/main/README.md" data-readme="agentic-experiment/declivitous-aetiologist-pigeonwood">(about)</a><span class="date">2026-08-11</span><p>A generative dusk garden, made of nothing but HTML, CSS, and vanilla JavaScript.</p></li>
+<li class="card"><a href="https://agentic-experiment.github.io/inferrible-equipaga/"><strong>inferrible-equipaga</strong></a> <a class="about" href="https://github.com/agentic-experiment/inferrible-equipaga/blob/main/README.md" data-readme="agentic-experiment/inferrible-equipaga">(about)</a><span class="date">2026-08-11</span><p>Infer your packing list from a few trip details. Pick your trip, get a bag.</p></li>
+<li class="card"><a href="https://agentic-experiment.github.io/soursops-mecopteron/"><strong>soursops-mecopteron</strong></a> <a class="about" href="https://github.com/agentic-experiment/soursops-mecopteron/blob/main/README.md" data-readme="agentic-experiment/soursops-mecopteron">(about)</a><span class="date">2026-08-11</span><p>*A horticultural calamity.*</p></li>
+<li class="card"><a href="https://agentic-experiment.github.io/casefy/"><strong>casefy</strong></a> <a class="about" href="https://github.com/agentic-experiment/casefy/blob/main/README.md" data-readme="agentic-experiment/casefy">(about)</a><span class="date">2026-08-11</span><p>A casing detective and conversion lab. Type text, it names the casing style</p></li></ul>
   <footer>Generated daily by an autonomous agent.</footer>
 </main>
+<dialog id="about">
+  <button class="close" aria-label="Close">&times;</button>
+  <div class="about-body"></div>
+</dialog>
+<script>
+  const dialog = document.getElementById('about');
+  const body = dialog.querySelector('.about-body');
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = s => s
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  function render(md) {
+    const lines = md.split('\n');
+    let html = '', inCode = false, inList = false, listType = '';
+    const closeList = () => { if (inList) { html += '</' + listType + '>'; inList = false; } };
+    for (const raw of lines) {
+      const line = raw.replace(/\r$/, '');
+      if (line.startsWith('```')) { closeList(); html += inCode ? '</pre>' : '<pre>'; inCode = !inCode; continue; }
+      if (inCode) { html += esc(line) + '\n'; continue; }
+      if (!line.trim()) { closeList(); continue; }
+      const h = line.match(/^(#{1,6})\s+(.*)/);
+      if (h) { closeList(); const n = h[1].length; html += '<h' + n + '>' + inline(esc(h[2])) + '</h' + n + '>'; continue; }
+      const ul = line.match(/^\s*[-*+]\s+(.*)/);
+      const ol = line.match(/^\s*\d+[.)]\s+(.*)/);
+      if (ul || ol) {
+        const t = ul ? 'ul' : 'ol';
+        if (!inList || listType !== t) { closeList(); inList = true; listType = t; html += '<' + t + '>'; }
+        html += '<li>' + inline(esc(ul ? ul[1] : ol[1])) + '</li>';
+        continue;
+      }
+      closeList();
+      html += '<p>' + inline(esc(line)) + '</p>';
+    }
+    closeList();
+    if (inCode) html += '</pre>';
+    return html;
+  }
+  document.addEventListener('click', async e => {
+    const link = e.target.closest('a.about');
+    if (!link) return;
+    e.preventDefault();
+    body.innerHTML = '<p>Loading&hellip;</p>';
+    dialog.showModal();
+    try {
+      const res = await fetch('https://raw.githubusercontent.com/' + link.dataset.readme + '/main/README.md');
+      if (!res.ok) throw new Error(res.status);
+      body.innerHTML = render(await res.text());
+    } catch {
+      body.innerHTML = '<p>Could not load the README.</p>';
+    }
+  });
+  dialog.querySelector('.close').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
+</script>
 </body>
 </html>
