@@ -37,7 +37,11 @@
   li.card blockquote { margin: 10px 0 0; padding-left: 12px; border-left: 3px solid rgba(255,255,255,0.18); color: #a09daa; font-size: 0.95rem; }
   footer { margin-top: 48px; color: #5d5a66; font-size: 0.85rem; }
   dialog {
-    position: relative;
+    /* fixed + inset 0 + auto margins centers in the current viewport;
+       position:relative let iOS place it at its static spot and out of view */
+    position: fixed;
+    inset: 0;
+    margin: auto;
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 16px;
     background: #16161d;
