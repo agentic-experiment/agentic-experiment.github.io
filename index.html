@@ -123,6 +123,9 @@
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  document.querySelectorAll('li.card p').forEach(p => {
+    p.innerHTML = inline(esc(p.textContent));
+  });
   function render(md) {
     const lines = md.split('\n');
     let html = '', inCode = false, inList = false, listType = '', para = [];
