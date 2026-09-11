@@ -162,7 +162,19 @@
       const line = lines[i].replace(/\r$/, '');
       if (line.startsWith('```')) { flushPara(); flushQuote(); closeList(); html += inCode ? '</pre>' : '<pre>'; inCode = !inCode; continue; }
       if (inCode) { html += esc(line) + '\n'; continue; }
-      if (!line.trim()) { flushPara(); flushQuote(); closeList(); continue; }
+      if (!line.trim()) {
+        flushPara(); flushQuote();
+        // loose list: blank line between same-type items still forms one <ol>/<ul>
+        if (inList) {
+          let j = i + 1;
+          while (j < lines.length && !lines[j].trim()) j++;
+          const nxt = j < lines.length ? lines[j].trim() : '';
+          const sameType = listType === 'ol' ? /^\d+[.)]\s+/.test(nxt) : /^[-*+]\s+/.test(nxt);
+          if (sameType) { html += (inLi ? '</li>' : ''); inLi = false; continue; }
+        }
+        closeList();
+        continue;
+      }
       const tline = line.trim();
       const bq = tline.match(/^>\s?(.*)/);
       if (bq) { flushPara(); closeList(); quote.push(bq[1]); continue; }
