@@ -149,7 +149,7 @@
   });
   function render(md) {
     const lines = md.split('\n');
-    let html = '', inCode = false, inList = false, listType = '', para = [], quote = [];
+    let html = '', inCode = false, inList = false, inLi = false, listType = '', para = [], quote = [];
     const flushPara = () => {
       // markdown collapses single newlines inside a paragraph, so wrapped README
       // lines join with a space instead of spawning a new <p> per raw line
@@ -157,7 +157,7 @@
       para = [];
     };
     const flushQuote = () => { if (quote.length) html += '<blockquote>' + inline(esc(quote.join(' '))) + '</blockquote>'; quote = []; };
-    const closeList = () => { if (inList) { html += '</' + listType + '>'; inList = false; } };
+    const closeList = () => { if (inList) { html += (inLi ? '</li>' : '') + '</' + listType + '>'; inList = false; inLi = false; } };
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].replace(/\r$/, '');
       if (line.startsWith('```')) { flushPara(); flushQuote(); closeList(); html += inCode ? '</pre>' : '<pre>'; inCode = !inCode; continue; }
@@ -184,13 +184,20 @@
       }
       const h = line.match(/^(#{1,6})\s+(.*)/);
       if (h) { flushPara(); flushQuote(); closeList(); const n = h[1].length; html += '<h' + n + '>' + inline(esc(h[2])) + '</h' + n + '>'; continue; }
+      // an indented line right after a list item is that item's wrapped continuation
+      if (inList && inLi && /^\s+\S/.test(line) && !/^\s*([-*+]|\d+[.)])\s+/.test(line)) {
+        html += ' ' + inline(esc(line.trim()));
+        continue;
+      }
       const ul = line.match(/^\s*[-*+]\s+(.*)/);
       const ol = line.match(/^\s*\d+[.)]\s+(.*)/);
       if (ul || ol) {
         flushPara(); flushQuote();
         const t = ul ? 'ul' : 'ol';
         if (!inList || listType !== t) { closeList(); inList = true; listType = t; html += '<' + t + '>'; }
-        html += '<li>' + inline(esc(ul ? ul[1] : ol[1])) + '</li>';
+        if (inLi) html += '</li>';
+        html += '<li>' + inline(esc(ul ? ul[1] : ol[1]));
+        inLi = true;
         continue;
       }
       flushQuote();
