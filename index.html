@@ -19,7 +19,7 @@
   main { max-width: 900px; margin: 0 auto; padding: 64px 24px; }
   header h1 { font-size: 2.2rem; margin: 0 0 12px; letter-spacing: -0.02em; }
   header p { color: #a09daa; line-height: 1.6; max-width: 62ch; margin: 0 0 40px; }
-  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+  main > ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
   li.card {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
@@ -67,8 +67,13 @@
   .about-body code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 6px; font-size: 0.85em; }
   .about-body pre { background: rgba(0,0,0,0.35); padding: 14px; border-radius: 10px; overflow: auto; line-height: 1.5; }
   .about-body pre code { background: none; padding: 0; }
-  .about-body ul, .about-body ol { padding-left: 24px; line-height: 1.6; }
+  .about-body ul, .about-body ol { margin: 8px 0; padding-left: 24px; line-height: 1.6; display: block; }
+  .about-body ul { list-style: disc; }
+  .about-body ol { list-style: decimal; }
   .about-body li { margin: 4px 0; }
+  .about-body li > ul, .about-body li > ol { margin: 4px 0; padding-left: 20px; }
+  .about-body li > ul { list-style: circle; }
+  .about-body hr { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 20px 0; }
   .about-body table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 0.95rem; }
   .about-body th, .about-body td { border: 1px solid rgba(255,255,255,0.12); padding: 8px 10px; text-align: left; vertical-align: top; }
   .about-body th { background: rgba(255,255,255,0.06); }
@@ -153,7 +158,7 @@
   });
   function render(md) {
     const lines = md.split('\n');
-    let html = '', inCode = false, inList = false, inLi = false, listType = '', para = [], quote = [];
+    let html = '', inCode = false, para = [], quote = [], stack = [];
     const flushPara = () => {
       // markdown collapses single newlines inside a paragraph, so wrapped README
       // lines join with a space instead of spawning a new <p> per raw line
@@ -161,29 +166,40 @@
       para = [];
     };
     const flushQuote = () => { if (quote.length) html += '<blockquote>' + inline(esc(quote.join(' '))) + '</blockquote>'; quote = []; };
-    const closeList = () => { if (inList) { html += (inLi ? '</li>' : '') + '</' + listType + '>'; inList = false; inLi = false; } };
+    const popList = () => {
+      const top = stack.pop();
+      if (top) {
+        if (top.inLi) html += '</li>';
+        html += '</' + top.type + '>';
+      }
+    };
+    const closeAllLists = () => {
+      while (stack.length) popList();
+    };
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].replace(/\r$/, '');
-      if (line.startsWith('```')) { flushPara(); flushQuote(); closeList(); html += inCode ? '</pre>' : '<pre>'; inCode = !inCode; continue; }
+      if (line.startsWith('```')) { flushPara(); flushQuote(); closeAllLists(); html += inCode ? '</pre>' : '<pre>'; inCode = !inCode; continue; }
       if (inCode) { html += esc(line) + '\n'; continue; }
       if (!line.trim()) {
         flushPara(); flushQuote();
-        // loose list: blank line between same-type items still forms one <ol>/<ul>
-        if (inList) {
+        // loose list: blank line between items in a list keeps list context open
+        if (stack.length > 0) {
           let j = i + 1;
           while (j < lines.length && !lines[j].trim()) j++;
-          const nxt = j < lines.length ? lines[j].trim() : '';
-          const sameType = listType === 'ol' ? /^\d+[.)]\s+/.test(nxt) : /^[-*+]\s+/.test(nxt);
-          if (sameType) { html += (inLi ? '</li>' : ''); inLi = false; continue; }
+          const nxt = j < lines.length ? lines[j] : '';
+          if (/^\s*([-*+]|\d+[.)])\s+/.test(nxt) || /^\s+\S/.test(nxt)) {
+            continue;
+          }
         }
-        closeList();
+        closeAllLists();
         continue;
       }
       const tline = line.trim();
+      if (/^---+$/.test(tline)) { flushPara(); flushQuote(); closeAllLists(); html += '<hr>'; continue; }
       const bq = tline.match(/^>\s?(.*)/);
-      if (bq) { flushPara(); closeList(); quote.push(bq[1]); continue; }
+      if (bq) { flushPara(); closeAllLists(); quote.push(bq[1]); continue; }
       if (tline.startsWith('|') && /^\|.*\|$/.test(tline)) {
-        flushPara(); flushQuote(); closeList();
+        flushPara(); flushQuote(); closeAllLists();
         const rows = [tline];
         while (i + 1 < lines.length) {
           const n = lines[i + 1].trim();
@@ -199,30 +215,52 @@
         continue;
       }
       const h = line.match(/^(#{1,6})\s+(.*)/);
-      if (h) { flushPara(); flushQuote(); closeList(); const n = h[1].length; html += '<h' + n + '>' + inline(esc(h[2])) + '</h' + n + '>'; continue; }
+      if (h) { flushPara(); flushQuote(); closeAllLists(); const n = h[1].length; html += '<h' + n + '>' + inline(esc(h[2])) + '</h' + n + '>'; continue; }
+
+      const lm = line.match(/^(\s*)([-*+]|\d+[.)])\s+(.*)/);
+      if (lm) {
+        flushPara(); flushQuote();
+        const indent = lm[1].length;
+        const isUl = /^[-*+]/.test(lm[2]);
+        const type = isUl ? 'ul' : 'ol';
+        const text = lm[3];
+
+        while (stack.length > 0) {
+          const top = stack[stack.length - 1];
+          if (indent < top.indent) {
+            popList();
+          } else if (indent === top.indent && top.type !== type) {
+            popList();
+          } else {
+            break;
+          }
+        }
+
+        if (stack.length === 0 || indent > stack[stack.length - 1].indent) {
+          stack.push({ type, indent, inLi: true });
+          html += '<' + type + '><li>' + inline(esc(text));
+        } else {
+          const top = stack[stack.length - 1];
+          if (top.inLi) html += '</li>';
+          top.inLi = true;
+          html += '<li>' + inline(esc(text));
+        }
+        continue;
+      }
+
       // an indented line right after a list item is that item's wrapped continuation
-      if (inList && inLi && /^\s+\S/.test(line) && !/^\s*([-*+]|\d+[.)])\s+/.test(line)) {
+      if (stack.length > 0 && /^\s+\S/.test(line)) {
         html += ' ' + inline(esc(line.trim()));
         continue;
       }
-      const ul = line.match(/^\s*[-*+]\s+(.*)/);
-      const ol = line.match(/^\s*\d+[.)]\s+(.*)/);
-      if (ul || ol) {
-        flushPara(); flushQuote();
-        const t = ul ? 'ul' : 'ol';
-        if (!inList || listType !== t) { closeList(); inList = true; listType = t; html += '<' + t + '>'; }
-        if (inLi) html += '</li>';
-        html += '<li>' + inline(esc(ul ? ul[1] : ol[1]));
-        inLi = true;
-        continue;
-      }
+
       flushQuote();
-      closeList();
+      closeAllLists();
       para.push(line.trim());
     }
     flushPara();
     flushQuote();
-    closeList();
+    closeAllLists();
     if (inCode) html += '</pre>';
     return html;
   }
